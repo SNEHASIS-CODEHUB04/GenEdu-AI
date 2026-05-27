@@ -1,18 +1,23 @@
 import mongoose from 'mongoose';
 
 export async function connectDB() {
-  let uri = process.env.MONGODB_URI || '';
+  const uri = process.env.MONGODB_URI || '';
 
-  // If no real URI provided, spin up an in-memory MongoDB
   if (!uri || uri === 'mongodb://localhost:27017/vedaai') {
+    // Local dev only — mongodb-memory-server is installed locally but not in prod
     try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore — not available in prod, only local dev
       const { MongoMemoryServer } = await import('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
-      uri = mongod.getUri();
       console.log('Using in-memory MongoDB (local dev)');
-    } catch (err) {
-      console.error('Failed to start in-memory MongoDB:', err);
-      throw err;
+      await mongoose.connect(mongod.getUri());
+      console.log('MongoDB connected');
+      return;
+    } catch {
+      throw new Error(
+        'No MONGODB_URI set. Add your MongoDB Atlas URI to the .env file.'
+      );
     }
   }
 
