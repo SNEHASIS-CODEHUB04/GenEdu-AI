@@ -1,11 +1,9 @@
 import mongoose from 'mongoose';
 
 export async function connectDB() {
-  const uri = process.env.MONGODB_URI;
+  const raw = process.env.MONGODB_URI || '';
 
-  console.log('MONGODB_URI present:', !!uri);
-
-  if (!uri) {
+  if (!raw) {
     try {
       // @ts-ignore
       const { MongoMemoryServer } = await import('mongodb-memory-server');
@@ -15,21 +13,28 @@ export async function connectDB() {
       console.log('MongoDB connected (in-memory)');
       return;
     } catch {
-      throw new Error('MONGODB_URI env var is not set.');
+      throw new Error('MONGODB_URI not set.');
     }
   }
 
-  // Log partial URI to help debug (hides password)
+  // Ensure database name is in the URI
+  let uri = raw;
   try {
-    const url = new URL(uri);
-    console.log(`Connecting to MongoDB: ${url.protocol}//${url.username}:***@${url.host}${url.pathname}`);
+    const url = new URL(raw);
+    // If pathname is just '/' or empty, add the db name
+    if (!url.pathname || url.pathname === '/') {
+      url.pathname = '/vedaai';
+      uri = url.toString();
+    }
+    console.log(`Connecting: ${url.protocol}//${url.username}:***@${url.host}${url.pathname}`);
   } catch {
-    console.log('Connecting to MongoDB Atlas...');
+    console.log('Connecting to MongoDB...');
   }
 
   await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    dbName: 'vedaai',
   });
-  console.log('MongoDB connected');
+  console.log('MongoDB connected ✅');
 }
