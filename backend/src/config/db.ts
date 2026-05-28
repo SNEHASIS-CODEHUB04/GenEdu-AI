@@ -6,7 +6,6 @@ export async function connectDB() {
   console.log('MONGODB_URI present:', !!uri);
 
   if (!uri) {
-    // Local dev fallback
     try {
       // @ts-ignore — only installed locally
       const { MongoMemoryServer } = await import('mongodb-memory-server');
@@ -21,6 +20,14 @@ export async function connectDB() {
   }
 
   console.log('Connecting to MongoDB Atlas...');
-  await mongoose.connect(uri);
-  console.log('MongoDB connected');
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000, // fail fast with clear error
+      connectTimeoutMS: 10000,
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err instanceof Error ? err.message : err);
+    throw err;
+  }
 }
