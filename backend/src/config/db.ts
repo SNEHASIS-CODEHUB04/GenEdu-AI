@@ -7,7 +7,7 @@ export async function connectDB() {
 
   if (!uri) {
     try {
-      // @ts-ignore — only installed locally
+      // @ts-ignore
       const { MongoMemoryServer } = await import('mongodb-memory-server');
       const mongod = await MongoMemoryServer.create();
       console.log('Using in-memory MongoDB (local dev)');
@@ -15,19 +15,21 @@ export async function connectDB() {
       console.log('MongoDB connected (in-memory)');
       return;
     } catch {
-      throw new Error('MONGODB_URI env var is not set and mongodb-memory-server is unavailable.');
+      throw new Error('MONGODB_URI env var is not set.');
     }
   }
 
-  console.log('Connecting to MongoDB Atlas...');
+  // Log partial URI to help debug (hides password)
   try {
-    await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000, // fail fast with clear error
-      connectTimeoutMS: 10000,
-    });
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error('MongoDB connection error:', err instanceof Error ? err.message : err);
-    throw err;
+    const url = new URL(uri);
+    console.log(`Connecting to MongoDB: ${url.protocol}//${url.username}:***@${url.host}${url.pathname}`);
+  } catch {
+    console.log('Connecting to MongoDB Atlas...');
   }
+
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+  });
+  console.log('MongoDB connected');
 }
